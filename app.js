@@ -596,42 +596,72 @@
   }
 
   // ---- 智能润色 ----
-  function buildPolishPrompt(original, style) {
+  function buildPolishPrompt(original, style, force) {
     var hasSpecial = !!(style && String(style).trim());
     var special = hasSpecial ? String(style).trim() : "";
-    return "你是资深的制造企业营销文案编辑，请对下面这段【原文案】进行智能润色改写。\n\n" +
-      "【润色规则（必须严格遵守）】\n" +
-      "1. 基础输出规则：若用户仅提供原文、无特殊格式要求，默认直接输出完整的润色后全文，" +
-      "不额外添加“润色说明”“修改对比”“前言后语”等无关内容。\n" +
-      "2. 格式保留规则：完全保留原文的段落结构、换行、分级标题、列表、加粗、斜体等排版格式，" +
-      "不得擅自调整原文的排版结构。\n" +
-      "3. 质量达标标准（须同时满足）：\n" +
-      "   • 核心信息零偏差，与原文立意、核心观点、关键数据完全一致；\n" +
-      "   • 表达地道自然，完全符合中文母语者的写作习惯，无 AI 机械感与生硬感；\n" +
-      "   • 行文流畅顺滑，逻辑连贯，过渡自然，无逻辑断层与生硬衔接；\n" +
-      "   • 无错别字、语病、标点错误，表达规范严谨；\n" +
-      "   • 完美贴合原文的文体与语气，适配目标受众的阅读习惯。\n" +
-      "4. 特殊需求适配规则：若用户明确提出特殊需求（见下），优先按照用户的要求输出对应内容。\n" +
-      "5. 适度润色原则：润色以“自然、地道、去 AI 化、人性化”为核心，不得过度炫技、过度修改，" +
-      "不得添加与原文无关的个人观点或额外内容，不得大幅改变原文的篇幅比例。\n" +
-      "6. 用户需求优先原则：若用户附带了特殊润色要求（如仅精简、仅调整语气、仅修正语病、" +
-      "提供修改对比等），必须优先执行用户的特殊要求，再匹配本提示词的基础规则。\n" +
+    return "你是资深的制造企业营销文案编辑。任务：把下面【原文案】**改写**成更自然、更有说服力、更像真人写的版本。\n\n" +
+      "【硬性要求（按优先级从高到低，必须全部满足）】\n" +
+      "1. 必须改写，严禁原样返回：输出中与原文字面完全相同的句子不得超过 20%，整体改写幅度建议 30%~60%。" +
+      "即使原文已经不错，也必须在措辞、句式、节奏上做出可感知的优化。**绝对不允许输出与原文一字不差的内容。**\n" +
+      "2. 信息保真：不得改变核心观点、关键数据、专有名词、规格数值、认证名称；不得删掉原文已有的信息点。" +
+      "可以调整语序、增补修饰、合并拆分句子，但不能改变事实。\n" +
+      "3. 结构保留：保留原有段落划分、换行、标题层级、列表项数量。" +
+      "若原文是「字段：值」的参数清单（如【材质】铸铁），字段名与数值必须原样保留，" +
+      "但要在值后面补成完整的营销短句（例：【交期】30天 → 【交期】常用规格有现货，下单后 30 天内可发货）。\n" +
+      "4. 去 AI 味：删掉“综上所述、由此可见、总而言之”等套话，去掉空洞形容词与排比堆砌，" +
+      "换成具体、可感知、口语化的表达；避免四字词连用造成的僵硬感。\n" +
+      "5. 篇幅：与原文相当，允许 ±30% 浮动；原文很短时也要给出更完整、更有感染力的版本。\n" +
+      "6. 只输出改写后的全文：不要“润色说明”“修改对比”“以下是为您改写的版本”等任何前后缀。\n" +
+      "7. 特殊需求优先：若用户填写了特殊需求，以特殊需求为准，其余规则照常执行。\n" +
       COMMON_RULES + "\n" +
       (hasSpecial
         ? ("\n【用户的特殊需求（最高优先级，务必满足）】\n" + special + "\n")
-        : "\n（用户无特殊需求，按基础输出规则：只输出润色后的完整全文。）\n") +
+        : "\n（用户未填写特殊需求，按上面的通用要求执行。）\n") +
+      (force
+        ? "\n【重要提醒】上一次的改写结果与原文几乎完全相同，被判定为失败。" +
+          "这一次必须真正重写：换掉原句的句式和用词，重新组织表达，不得照抄。\n"
+        : "") +
       "\n【原文案】\n" + String(original).trim();
   }
 
-  async function callPolish(cfg, original, style) {
+  async function callPolish(cfg, original, style, force) {
     if (!aiReady(cfg)) throw noKeyError();
     var body = {
       model: cfg.model || "deepseek-chat",
-      messages: [{ role: "user", content: buildPolishPrompt(original, style) }],
-      temperature: (cfg.temperature != null ? cfg.temperature : 0.7)
+      messages: [{ role: "user", content: buildPolishPrompt(original, style, force) }],
+      temperature: force ? 1.0 : 0.85
     };
     var out = await aiRequest(cfg, body);
     return String(out || "");
+  }
+
+  // 粗略判断“改了没有”：去空白后用二元字组重合度比较，过于接近就视为没改写
+  function polishTooSimilar(a, b) {
+    var x = String(a || "").replace(/\s+/g, "");
+    var y = String(b || "").replace(/\s+/g, "");
+    if (!y) return true;
+    if (x === y) return true;
+    if (x.length < 2 || y.length < 2) return x === y;
+    function grams(s) {
+      var m = {}, n = 0;
+      for (var i = 0; i < s.length - 1; i++) {
+        var g = s.substr(i, 2);
+        m[g] = (m[g] || 0) + 1;
+        n++;
+      }
+      return { m: m, n: n };
+    }
+    var A = grams(x), B = grams(y), inter = 0, k;
+    for (k in A.m) { if (B.m[k]) inter += Math.min(A.m[k], B.m[k]); }
+    var dice = (2 * inter) / (A.n + B.n);
+    if (dice > 0.9) return true;
+    // 补充判断：去掉公共前后缀后，中间差异部分占比很低，也说明几乎没改
+    var i0 = 0, minLen = Math.min(x.length, y.length);
+    while (i0 < minLen && x.charAt(i0) === y.charAt(i0)) i0++;
+    var j0 = 0;
+    while (j0 < minLen - i0 && x.charAt(x.length - 1 - j0) === y.charAt(y.length - 1 - j0)) j0++;
+    var mid = Math.max(x.length - i0 - j0, y.length - i0 - j0);
+    return (mid / Math.max(x.length, y.length)) < 0.15;
   }
 
   // ============================================================
@@ -1115,11 +1145,20 @@
         setHint("正在润色，请稍候……");
         try {
           var out = await callPolish(state.ai, src, sty);
+          // 模型有时会“照抄原文”，自动重试一次并加强指令
+          if (polishTooSimilar(src, out)) {
+            setHint("改写幅度不足，正在重试……");
+            out = await callPolish(state.ai, src, sty, true);
+          }
           var pr = { text: out || "", hits: [] };
           if (window.Compliance) pr = window.Compliance.sanitize(out || "");
           $("polishOutput").value = (pr.text || "").trim();
           var pn = (pr.hits && pr.hits.length) ? "；已自动合规替换 " + pr.hits.length + " 处绝对化用语" : "";
-          setHint("润色完成 ✓ " + new Date().toLocaleTimeString() + pn);
+          if (polishTooSimilar(src, pr.text || "")) {
+            setHint("润色完成，但模型改动较小 ✓ 可填写「特殊需求」再试一次");
+          } else {
+            setHint("润色完成 ✓ " + new Date().toLocaleTimeString() + pn);
+          }
         } catch (e) {
           setHint("润色失败");
           alert("润色失败：\n" + (e && e.message ? e.message : e));
