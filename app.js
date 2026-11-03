@@ -583,7 +583,7 @@
     return last;
   }
 
-  // 调用模型（整段，保留备用于润色/兼容）
+  // 调用模型（整段，兼容旧接口）
   async function callModel(cfg, productInfo, styleReq) {
     if (!aiReady(cfg)) throw noKeyError();
     var body = {
@@ -593,75 +593,6 @@
     };
     var out = await aiRequest(cfg, body);
     return String(out || "");
-  }
-
-  // ---- 智能润色 ----
-  function buildPolishPrompt(original, style, force) {
-    var hasSpecial = !!(style && String(style).trim());
-    var special = hasSpecial ? String(style).trim() : "";
-    return "你是资深的制造企业营销文案编辑。任务：把下面【原文案】**改写**成更自然、更有说服力、更像真人写的版本。\n\n" +
-      "【硬性要求（按优先级从高到低，必须全部满足）】\n" +
-      "1. 必须改写，严禁原样返回：输出中与原文字面完全相同的句子不得超过 20%，整体改写幅度建议 30%~60%。" +
-      "即使原文已经不错，也必须在措辞、句式、节奏上做出可感知的优化。**绝对不允许输出与原文一字不差的内容。**\n" +
-      "2. 信息保真：不得改变核心观点、关键数据、专有名词、规格数值、认证名称；不得删掉原文已有的信息点。" +
-      "可以调整语序、增补修饰、合并拆分句子，但不能改变事实。\n" +
-      "3. 结构保留：保留原有段落划分、换行、标题层级、列表项数量。" +
-      "若原文是「字段：值」的参数清单（如【材质】铸铁），字段名与数值必须原样保留，" +
-      "但要在值后面补成完整的营销短句（例：【交期】30天 → 【交期】常用规格有现货，下单后 30 天内可发货）。\n" +
-      "4. 去 AI 味：删掉“综上所述、由此可见、总而言之”等套话，去掉空洞形容词与排比堆砌，" +
-      "换成具体、可感知、口语化的表达；避免四字词连用造成的僵硬感。\n" +
-      "5. 篇幅：与原文相当，允许 ±30% 浮动；原文很短时也要给出更完整、更有感染力的版本。\n" +
-      "6. 只输出改写后的全文：不要“润色说明”“修改对比”“以下是为您改写的版本”等任何前后缀。\n" +
-      "7. 特殊需求优先：若用户填写了特殊需求，以特殊需求为准，其余规则照常执行。\n" +
-      COMMON_RULES + "\n" +
-      (hasSpecial
-        ? ("\n【用户的特殊需求（最高优先级，务必满足）】\n" + special + "\n")
-        : "\n（用户未填写特殊需求，按上面的通用要求执行。）\n") +
-      (force
-        ? "\n【重要提醒】上一次的改写结果与原文几乎完全相同，被判定为失败。" +
-          "这一次必须真正重写：换掉原句的句式和用词，重新组织表达，不得照抄。\n"
-        : "") +
-      "\n【原文案】\n" + String(original).trim();
-  }
-
-  async function callPolish(cfg, original, style, force) {
-    if (!aiReady(cfg)) throw noKeyError();
-    var body = {
-      model: cfg.model || "deepseek-chat",
-      messages: [{ role: "user", content: buildPolishPrompt(original, style, force) }],
-      temperature: force ? 1.0 : 0.85
-    };
-    var out = await aiRequest(cfg, body);
-    return String(out || "");
-  }
-
-  // 粗略判断“改了没有”：去空白后用二元字组重合度比较，过于接近就视为没改写
-  function polishTooSimilar(a, b) {
-    var x = String(a || "").replace(/\s+/g, "");
-    var y = String(b || "").replace(/\s+/g, "");
-    if (!y) return true;
-    if (x === y) return true;
-    if (x.length < 2 || y.length < 2) return x === y;
-    function grams(s) {
-      var m = {}, n = 0;
-      for (var i = 0; i < s.length - 1; i++) {
-        var g = s.substr(i, 2);
-        m[g] = (m[g] || 0) + 1;
-        n++;
-      }
-      return { m: m, n: n };
-    }
-    var A = grams(x), B = grams(y), inter = 0, k;
-    for (k in A.m) { if (B.m[k]) inter += Math.min(A.m[k], B.m[k]); }
-    var dice = (2 * inter) / (A.n + B.n);
-    if (dice > 0.9) return true;
-    // 补充判断：去掉公共前后缀后，中间差异部分占比很低，也说明几乎没改
-    var i0 = 0, minLen = Math.min(x.length, y.length);
-    while (i0 < minLen && x.charAt(i0) === y.charAt(i0)) i0++;
-    var j0 = 0;
-    while (j0 < minLen - i0 && x.charAt(x.length - 1 - j0) === y.charAt(y.length - 1 - j0)) j0++;
-    var mid = Math.max(x.length - i0 - j0, y.length - i0 - j0);
-    return (mid / Math.max(x.length, y.length)) < 0.15;
   }
 
   // ============================================================
@@ -1119,62 +1050,6 @@
       setHint("已导出 TXT");
     });
 
-    // ---- 智能润色 ----
-    var btnPolishToggle = $("btnPolishToggle");
-    if (btnPolishToggle) {
-      btnPolishToggle.addEventListener("click", function () {
-        var p = $("polishPanel");
-        var on = p.style.display === "none" || !p.style.display;
-        p.style.display = on ? "block" : "none";
-        if (on) $("polishInput").focus();
-      });
-    }
-    var btnPolishRun = $("btnPolishRun");
-    if (btnPolishRun) {
-      btnPolishRun.addEventListener("click", async function () {
-        var src = $("polishInput").value.trim();
-        if (!src) { alert("请先粘贴要润色的原文案。"); return; }
-        if (!aiReady(state.ai)) {
-          setHint(SERVER_MODE ? "服务器未配置密钥，请联系部署方" : "智能润色需要先配置 API 密钥");
-          openSettings(true);
-          return;
-        }
-        var sty = $("polishStyle") ? $("polishStyle").value.trim() : "";
-        var old = btnPolishRun.textContent;
-        btnPolishRun.disabled = true; btnPolishRun.textContent = "润色中……";
-        setHint("正在润色，请稍候……");
-        try {
-          var out = await callPolish(state.ai, src, sty);
-          // 模型有时会“照抄原文”，自动重试一次并加强指令
-          if (polishTooSimilar(src, out)) {
-            setHint("改写幅度不足，正在重试……");
-            out = await callPolish(state.ai, src, sty, true);
-          }
-          var pr = { text: out || "", hits: [] };
-          if (window.Compliance) pr = window.Compliance.sanitize(out || "");
-          $("polishOutput").value = (pr.text || "").trim();
-          var pn = (pr.hits && pr.hits.length) ? "；已自动合规替换 " + pr.hits.length + " 处绝对化用语" : "";
-          if (polishTooSimilar(src, pr.text || "")) {
-            setHint("润色完成，但模型改动较小 ✓ 可填写「特殊需求」再试一次");
-          } else {
-            setHint("润色完成 ✓ " + new Date().toLocaleTimeString() + pn);
-          }
-        } catch (e) {
-          setHint("润色失败");
-          alert("润色失败：\n" + (e && e.message ? e.message : e));
-        } finally {
-          btnPolishRun.disabled = false; btnPolishRun.textContent = old;
-        }
-      });
-    }
-    var btnPolishCopy = $("btnPolishCopy");
-    if (btnPolishCopy) {
-      btnPolishCopy.addEventListener("click", function () {
-        var t = $("polishOutput").value.trim();
-        if (!t) { setHint("暂无可复制的润色结果"); return; }
-        copyText(t).then(function (ok) { setHint(ok ? "已复制润色结果" : "复制失败，请手动选择复制"); });
-      });
-    }
   }
 
   function renderOutContent() {
@@ -1738,7 +1613,6 @@
     var libBtn = $("btnLibrary");
     var tplTab = $("tabBtnTemplate");
     var styleWrap = $("styleReqWrap");
-    var polishBtn = $("btnPolishToggle");
     if (mode === "pro") {
       bit.textContent = "升级款";
       bit.className = "badge badge-pro";
@@ -1746,7 +1620,6 @@
       if (libBtn) libBtn.style.display = "none";      // 升级款下隐藏模板库入口
       if (tplTab) tplTab.style.display = "none";       // 升级款下隐藏模板管理标签
       if (styleWrap) styleWrap.style.display = "block"; // 升级款显示「文案风格需求」
-      if (polishBtn) polishBtn.style.display = "";      // 升级款才提供「智能润色」入口（需 AI）
       // 若当前正停在模板管理页，切到升级款时自动跳回生成文案
       var tplPanel = $("tab-template");
       if (tplPanel && tplPanel.classList.contains("active")) {
@@ -1760,9 +1633,6 @@
       if (libBtn) libBtn.style.display = "";
       if (tplTab) tplTab.style.display = "";
       if (styleWrap) styleWrap.style.display = "none";  // 基础款隐藏「文案风格需求」
-      if (polishBtn) polishBtn.style.display = "none";  // 基础款不显示「智能润色」入口（润色需 AI）
-      var polishPanelEl = $("polishPanel");
-      if (polishPanelEl) polishPanelEl.style.display = "none"; // 顺带收起润色面板，避免残留
     }
     document.querySelectorAll(".ms-btn").forEach(function (b) {
       b.classList.toggle("active", b.getAttribute("data-mode") === mode);
@@ -1952,7 +1822,6 @@
       defaultTemplates: defaultTemplates,
       buildPrompt: buildPrompt,
       parseSections: parseSections,
-      buildPolishPrompt: buildPolishPrompt,
       buildSectionPrompt: buildSectionPrompt,
       SECTION_KEYS: SECTION_KEYS,
       loadAIConfig: loadAIConfig,
