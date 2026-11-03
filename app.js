@@ -1069,8 +1069,8 @@
   // 升级款：调用模型生成
   async function generatePro(text) {
     if (!aiReady(state.ai)) {
-      setHint(SERVER_MODE ? "服务器未配置密钥，请联系部署方" : "升级款需要先配置 API 密钥");
-      openSettings(true);
+      // 不弹窗口，只在顶部提示；状态文字已在提示条里常驻显示
+      setHint(SERVER_MODE ? "当前没有配置密钥，无法使用升级款；请联系部署方或切到「基础款」" : "当前没有配置密钥，点右上角「⚙ 设置」填写后再生成；也可切到「基础款」直接使用");
       return;
     }
     state.generating = true;
@@ -1643,22 +1643,13 @@
   function refreshProKeyState() {
     var el = $("proKeyState");
     if (!el) return;
-    if (SERVER_MODE) {
-      var m = (SERVER_INFO && SERVER_INFO.model) || "deepseek-chat";
-      if (SERVER_INFO && SERVER_INFO.has_key) {
-        el.textContent = "✓ 密钥由服务器管理（" + m + "）";
-        el.className = "pro-key-state ok";
-      } else {
-        el.textContent = "⚠ 服务器尚未配置密钥，请在「⚙ 设置」里填写";
-        el.className = "pro-key-state warn";
-      }
-      return;
-    }
-    if (state.ai.api_key) {
-      el.textContent = "✓ 已配置密钥（" + (state.ai.model || "deepseek-chat") + "）";
+    var configured = SERVER_MODE ? !!(SERVER_INFO && SERVER_INFO.has_key) : !!state.ai.api_key;
+    var model = (SERVER_MODE ? (SERVER_INFO && SERVER_INFO.model) : state.ai.model) || "deepseek-chat";
+    if (configured) {
+      el.textContent = "✓ 已配置密钥（" + model + "）";
       el.className = "pro-key-state ok";
     } else {
-      el.textContent = "⚠ 还未配置密钥，点右上角「⚙ 设置」";
+      el.textContent = "⚠ 当前没有配置密钥，点右上角「⚙ 设置」填写";
       el.className = "pro-key-state warn";
     }
   }
@@ -1668,15 +1659,15 @@
       b.addEventListener("click", function () {
         var mode = b.getAttribute("data-mode");
         applyMode(mode);
-        if (mode === "pro" && !aiReady(state.ai)) {
-          setHint(SERVER_MODE ? "服务器尚未配置密钥" : "升级款需先配置 API 密钥");
-          openSettings(true);
-        } else {
-          setHint(mode === "pro" ? "已切换到升级款·AI 模式" : "已切换到基础款（无需联网）");
-        }
+        // 不再弹设置窗口：未配置密钥时只在顶部状态文字里提示
+        setHint(mode === "pro" ? "已切换到升级款·AI 模式" : "已切换到基础款（无需联网）");
       });
     });
-    applyMode("basic");
+    // 默认进入升级款·AI（首屏即展示 AI 能力）
+    applyMode("pro");
+    if (!aiReady(state.ai)) {
+      setHint(SERVER_MODE ? "当前没有配置密钥；也可切到「基础款」直接使用" : "当前没有配置密钥，点右上角「⚙ 设置」填写；也可切到「基础款」直接使用");
+    }
   }
 
   // ---- AI 设置弹层 ----
