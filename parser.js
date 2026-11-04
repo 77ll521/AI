@@ -212,7 +212,7 @@
   // 把已确认的表单字段拼回一段结构化文本，供生成使用
   function toText(fields) {
     var parts = [];
-    // 输出用词与基础款字段解析保持一致（尺寸规格/材质/交期/认证/产品名称）
+    // 输出用词与离线版字段解析保持一致（尺寸规格/材质/交期/认证/产品名称）
     var MAP = {
       product: "产品名称", material: "材质", spec: "尺寸规格",
       precision: "加工精度", cert: "认证", delivery: "交期", scene: "适用场景"

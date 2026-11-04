@@ -1,8 +1,8 @@
 /* ============================================================
- * 制造企业文案助手 · 网页版（基础款 + AI升级款）
+ * 墨匠文案 · 网页版（离线版 + 基础版·AI）
  * 纯静态、无后端、无外部依赖。
  * 逻辑移植自 Python 版 copy_app.py（模板引擎 / 行业识别 / 字段解析 / 产品库 / AI 调用）。
- * 升级款：用户在浏览器本地填自己的 API 密钥，直连 OpenAI 兼容接口；密钥不上传。
+ * 基础版·AI：用户在浏览器本地填自己的 API 密钥，直连 OpenAI 兼容接口；密钥不上传。
  * ============================================================ */
 (function () {
   "use strict";
@@ -32,6 +32,24 @@
     timeout: 90
   };
 
+  // 接口地址容错：用户只填域名或 /v1 也能用
+  //   https://ai.hebox.net                     -> .../v1/chat/completions
+  //   https://ai.hebox.net/v1                  -> .../v1/chat/completions
+  //   https://ai.hebox.net/v1/                 -> .../v1/chat/completions
+  //   https://ai.hebox.net/v1/chat/completions -> 原样
+  //   https://x.com/openai/v1                  -> .../openai/v1/chat/completions
+  function normalizeApiUrl(u) {
+    var s = String(u || "").trim();
+    if (!s) return DEFAULT_AI.api_url;
+    s = s.replace(/\s+/g, "");
+    if (!/^https?:\/\//i.test(s)) s = "https://" + s;
+    s = s.replace(/\/+$/, "");
+    if (/\/chat\/completions$/i.test(s)) return s;
+    if (/\/v1$/i.test(s)) return s + "/chat/completions";
+    if (/\/completions$/i.test(s)) return s;
+    return s + "/v1/chat/completions";
+  }
+
   // ============================================================
   // 后端模式（server.py）
   //   由 Python 后端提供页面与 /api/chat 代理，密钥只存在服务器 config.json，
@@ -57,7 +75,7 @@
       url = SERVER_API + "/chat";
       headers = { "Content-Type": "application/json" };
     } else {
-      url = (cfg && cfg.api_url) || DEFAULT_AI.api_url;
+      url = normalizeApiUrl((cfg && cfg.api_url) || DEFAULT_AI.api_url);
       headers = {
         "Authorization": "Bearer " + cfg.api_key,
         "Content-Type": "application/json"
@@ -370,7 +388,7 @@
 
     if (remark) s1688 += "\n\n五、补充说明\n" + remark;
 
-    // ⑤ 博客（基础款模板拼装）
+    // ⑤ 博客（离线版模板拼装）
     var blog = "【" + name + "选购指南】" + industry + "厂家怎么挑？\n\n" +
       "一、产品价值\n" + name + "是" + industry + "领域的高性价比之选，" +
       (material ? ("采用" + material + "材质，") : "") + "主打" + points.slice(0, 2).join("、") + "。\n\n" +
@@ -378,7 +396,7 @@
       "三、应用场景\n广泛适用于" + scenes.join("、") + "等场景，" + (spec ? ("规格" + spec + "，") : "") + "可按需定制。\n\n" +
       "四、选购建议\n选择源头工厂更省心，关注" + (cert ? (cert + "等认证、") : "") + "交期与售后。常规交期" + lead + "，量大价优，欢迎来厂考察。";
 
-    // ⑥ 邮件（基础款模板）
+    // ⑥ 邮件（离线版模板）
     var mail = "主题：关于" + name + "的合作与报价（" + industry + "源头工厂）\n\n" +
       "尊敬的客户：\n\n" +
       "您好！我们是山东" + industry + "源头制造企业，现就" + name + "与您探讨合作可能。\n\n" +
@@ -413,7 +431,7 @@
   }
 
   // ============================================================
-  // AI 升级款：配置存储 / Prompt / 解析 / 调用（移植自 Python）
+  // 基础版·AI：配置存储 / Prompt / 解析 / 调用（移植自 Python）
   // ============================================================
   function loadAIConfig() {
     var cfg = deepCopy(DEFAULT_AI);
@@ -1056,7 +1074,7 @@
     $("outText").value = state.outSections[state.curOutTab] || "";
   }
 
-  // 统一把六段结果展示出来（基础款/升级款共用）
+  // 统一把六段结果展示出来（离线版/基础版·AI 共用）
   function showSections(secs) {
     state.outSections = secs || {};
     state.curOutTab = SECTION_KEYS[0];
@@ -1066,11 +1084,11 @@
     renderOutContent();
   }
 
-  // 升级款：调用模型生成
+  // 基础版·AI：调用模型生成
   async function generatePro(text) {
     if (!aiReady(state.ai)) {
       // 不弹窗口，只在顶部提示；状态文字已在提示条里常驻显示
-      setHint(SERVER_MODE ? "当前没有配置密钥，无法使用升级款；请联系部署方或切到「基础款」" : "当前没有配置密钥，点右上角「⚙ 设置」填写后再生成；也可切到「基础款」直接使用");
+      setHint(SERVER_MODE ? "当前没有配置密钥，无法使用基础版·AI；请联系部署方或切到「离线版」" : "当前没有配置密钥，点右上角「⚙ 设置」填写后再生成；也可切到「离线版」直接使用");
       return;
     }
     state.generating = true;
@@ -1606,7 +1624,7 @@
     if (btn) btn.click();
   }
 
-  // ---- 模式切换（基础款 / 升级款·AI）----
+  // ---- 模式切换（离线版 / 基础版·AI）----
   function applyMode(mode) {
     state.mode = mode;
     var bit = $("modeBadge");
@@ -1614,25 +1632,25 @@
     var tplTab = $("tabBtnTemplate");
     var styleWrap = $("styleReqWrap");
     if (mode === "pro") {
-      bit.textContent = "升级款";
+      bit.textContent = "基础版";
       bit.className = "badge badge-pro";
       $("proNotice").style.display = "flex";
-      if (libBtn) libBtn.style.display = "none";      // 升级款下隐藏模板库入口
-      if (tplTab) tplTab.style.display = "none";       // 升级款下隐藏模板管理标签
-      if (styleWrap) styleWrap.style.display = "block"; // 升级款显示「文案风格需求」
-      // 若当前正停在模板管理页，切到升级款时自动跳回生成文案
+      if (libBtn) libBtn.style.display = "none";      // 基础版·AI 下隐藏模板库入口
+      if (tplTab) tplTab.style.display = "none";       // 基础版·AI 下隐藏模板管理标签
+      if (styleWrap) styleWrap.style.display = "block"; // 基础版·AI 显示「文案风格需求」
+      // 若当前正停在模板管理页，切到基础版·AI 时自动跳回生成文案
       var tplPanel = $("tab-template");
       if (tplPanel && tplPanel.classList.contains("active")) {
         var genBtn = document.querySelector('.tab-btn[data-tab="gen"]');
         if (genBtn) genBtn.click();
       }
     } else {
-      bit.textContent = "基础款";
+      bit.textContent = "离线版";
       bit.className = "badge badge-basic";
       $("proNotice").style.display = "none";
       if (libBtn) libBtn.style.display = "";
       if (tplTab) tplTab.style.display = "";
-      if (styleWrap) styleWrap.style.display = "none";  // 基础款隐藏「文案风格需求」
+      if (styleWrap) styleWrap.style.display = "none";  // 离线版隐藏「文案风格需求」
     }
     document.querySelectorAll(".ms-btn").forEach(function (b) {
       b.classList.toggle("active", b.getAttribute("data-mode") === mode);
@@ -1660,13 +1678,13 @@
         var mode = b.getAttribute("data-mode");
         applyMode(mode);
         // 不再弹设置窗口：未配置密钥时只在顶部状态文字里提示
-        setHint(mode === "pro" ? "已切换到升级款·AI 模式" : "已切换到基础款（无需联网）");
+        setHint(mode === "pro" ? "已切换到基础版·AI 模式" : "已切换到离线版（无需联网）");
       });
     });
-    // 默认进入升级款·AI（首屏即展示 AI 能力）
+    // 默认进入基础版·AI（首屏即展示 AI 能力）
     applyMode("pro");
     if (!aiReady(state.ai)) {
-      setHint(SERVER_MODE ? "当前没有配置密钥；也可切到「基础款」直接使用" : "当前没有配置密钥，点右上角「⚙ 设置」填写；也可切到「基础款」直接使用");
+      setHint(SERVER_MODE ? "当前没有配置密钥；也可切到「离线版」直接使用" : "当前没有配置密钥，点右上角「⚙ 设置」填写；也可切到「离线版」直接使用");
     }
   }
 
@@ -1710,9 +1728,10 @@
     $("setCancelBtn").addEventListener("click", closeSettings);
 
     $("setSaveBtn").addEventListener("click", async function () {
-      var url = $("setApiUrl").value.trim() || DEFAULT_AI.api_url;
+      var url = normalizeApiUrl($("setApiUrl").value.trim());
       var key = $("setApiKey").value.trim();
       var model = $("setModel").value.trim() || "deepseek-chat";
+      $("setApiUrl").value = url;   // 回填补全后的完整地址，让用户看到实际调用的路径
 
       if (SERVER_MODE) {
         var patch = { api_url: url, model: model };
@@ -1740,9 +1759,10 @@
     });
 
     $("setTestBtn").addEventListener("click", async function () {
-      var url = $("setApiUrl").value.trim() || DEFAULT_AI.api_url;
+      var url = normalizeApiUrl($("setApiUrl").value.trim());
       var key = $("setApiKey").value.trim();
       var model = $("setModel").value.trim() || "deepseek-chat";
+      $("setApiUrl").value = url;
       if (!SERVER_MODE && !key) { alert("请先填写密钥再测试。"); return; }
 
       var btn = $("setTestBtn"); var old = btn.textContent;
@@ -1770,6 +1790,104 @@
         btn.disabled = false; btn.textContent = old;
       }
     });
+
+    // ---- 查看可用模型：直接问接口要 /v1/models，把能用的模型列出来 ----
+    $("setModelsBtn").addEventListener("click", async function () {
+      var btn = $("setModelsBtn");
+      var old = btn.textContent;
+      var picker = $("modelPicker");
+      var listEl = $("modelList");
+      btn.disabled = true; btn.textContent = "查询中……";
+      picker.style.display = "block";
+      listEl.innerHTML = '<div class="model-empty">正在向接口请求模型列表……</div>';
+
+      var url = normalizeApiUrl($("setApiUrl").value.trim());
+      $("setApiUrl").value = url;
+      var key = $("setApiKey").value.trim();
+
+      try {
+        var ids = await fetchModelIds(url, key);
+        if (!ids.length) {
+          listEl.innerHTML = '<div class="model-empty">接口没有返回任何模型名。</div>';
+        } else {
+          listEl.innerHTML = "";
+          ids.forEach(function (id) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.className = "model-item";
+            b.textContent = id;
+            b.addEventListener("click", function () {
+              $("setModel").value = id;
+              setHint("已选择模型：" + id + "，点「测试连接」验证后再保存");
+            });
+            listEl.appendChild(b);
+          });
+        }
+      } catch (e) {
+        listEl.innerHTML = '<div class="model-err">获取模型列表失败：' + escHtml(e && e.message ? e.message : String(e)) +
+          '<br><br>常见原因：密钥无效、该接口不支持 /v1/models、或浏览器跨域被拦。</div>';
+      } finally {
+        btn.disabled = false; btn.textContent = old;
+      }
+    });
+  }
+
+  // 从 /v1/chat/completions 推出 /v1/models 地址
+  function modelsUrlFrom(chatUrl) {
+    var u = normalizeApiUrl(chatUrl);
+    return u.replace(/\/chat\/completions$/i, "/models");
+  }
+
+  // 拉取模型 ID 列表；后端模式走服务器代理，避免浏览器跨域
+  // 注：部分中转站的 /v1/models 响应不稳定，可能几秒也可能挂起，故超时设短并重试
+  async function fetchModelIds(chatUrl, apiKey) {
+    var url = modelsUrlFrom(chatUrl);
+    var headers = {};
+    if (SERVER_MODE) {
+      url = SERVER_API + "/models";
+      headers = { "Content-Type": "application/json" };
+    } else {
+      headers = { "Authorization": "Bearer " + apiKey };
+    }
+
+    var lastErr = null;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      var ctrl = new AbortController();
+      var timer = setTimeout(function () { ctrl.abort(); }, 14000);
+      var resp;
+      try {
+        resp = await fetch(url, { method: "GET", headers: headers, signal: ctrl.signal });
+      } catch (e) {
+        clearTimeout(timer);
+        lastErr = (e && e.name === "AbortError")
+          ? new Error("请求超时（14 秒）")
+          : new Error("网络/跨域请求失败：" + (e && e.message ? e.message : e));
+        continue;   // 超时/网络抖动，重试
+      }
+      clearTimeout(timer);
+      var raw = await resp.text();
+      if (!resp.ok) {
+        // 401/403 = 配置问题，重试无意义，直接抛
+        var msg = raw;
+        try {
+          var ej = JSON.parse(raw);
+          if (ej && ej.error) msg = typeof ej.error === "string" ? ej.error : (ej.error.message || raw);
+        } catch (e2) { /* 保留原文 */ }
+        throw new Error("HTTP " + resp.status + "：" + String(msg).slice(0, 260));
+      }
+      var data;
+      try { data = JSON.parse(raw); }
+      catch (e) { throw new Error("返回内容无法解析：" + raw.slice(0, 200)); }
+      var arr = (data && data.data) || (data && data.models) || [];
+      if (!Array.isArray(arr)) return [];
+      return arr.map(function (m) {
+        if (typeof m === "string") return m;
+        return m && (m.id || m.name || m.model) || "";
+      }).filter(Boolean).sort();
+    }
+    throw new Error("获取模型列表超时（该接口的 /v1/models 较慢或不稳定，已重试 3 次）。" +
+      "可先用「测试连接」验证对话能否生成；若对话可用，直接手填模型名即可。最后一次错误：" +
+      (lastErr && lastErr.message ? lastErr.message : lastErr));
   }
 
   // ============================================================

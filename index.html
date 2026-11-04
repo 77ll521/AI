@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>制造企业文案助手 - 山东中小制造企业AI营销文案生成工具</title>
-<meta name="description" content="面向山东中小制造企业的 AI 文案助手：粘贴产品参数，一键生成 1688、短视频、朋友圈、AI 绘图提示词、博客、商务邮件六段营销文案，内置 110 个产品 330 套行业文案模板，支持广告法合规检测。">
-<meta name="keywords" content="制造企业文案,AI营销文案,机床文案,短视频脚本,1688文案,山东制造业,文案生成工具">
+<title>墨匠文案 - 山东中小制造企业AI营销文案生成工具</title>
+<meta name="description" content="墨匠文案：面向山东中小制造企业的 AI 营销文案生成工具。粘贴产品参数，一键生成 1688、短视频、朋友圈、AI 绘图提示词、博客、商务邮件六段营销文案，内置 110 个产品 330 套行业文案模板，支持广告法合规检测。">
+<meta name="keywords" content="墨匠文案,制造企业文案,AI营销文案,机床文案,短视频脚本,1688文案,山东制造业,文案生成工具">
 <meta name="robots" content="index,follow">
 <meta property="og:type" content="website">
-<meta property="og:title" content="制造企业文案助手 - 山东中小制造企业AI营销文案生成工具">
+<meta property="og:title" content="墨匠文案 - 山东中小制造企业AI营销文案生成工具">
 <meta property="og:description" content="粘贴产品参数，一键生成六段营销文案，内置 110 个产品 330 套行业模板。">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,14 +17,14 @@
   <header class="topbar">
     <div class="brand">
       <span class="logo">🛠️</span>
-      <span class="title">制造企业文案助手</span>
-      <span id="modeBadge" class="badge badge-pro">升级款</span>
+      <span class="title">墨匠文案</span>
+      <span id="modeBadge" class="badge badge-pro">基础版</span>
       <span class="title-sub">面向山东本土装备制造企业，针对机床零部件快速生成多渠道营销文案</span>
     </div>
     <div class="top-actions">
       <div class="mode-switch" id="modeSwitch">
-        <button class="ms-btn active" data-mode="pro">升级款·AI</button>
-        <button class="ms-btn" data-mode="basic">基础款</button>
+        <button class="ms-btn active" data-mode="pro">基础版·AI</button>
+        <button class="ms-btn" data-mode="basic">离线版</button>
       </div>
       <button id="btnSettings" class="btn btn-ghost" title="配置 AI 密钥">⚙ 设置</button>
       <a href="library.html" class="btn btn-ghost" id="btnLibrary" title="浏览 110 个产品 · 330 套现成文案模板">📚 文案模板库</a>
@@ -43,11 +43,11 @@
   <section class="panel active" id="tab-gen">
     <!-- 首屏说明：给搜索引擎和首次访问者看的文字（默认隐藏视觉，仅屏幕阅读器与爬虫可读） -->
     <div class="seo-lead">
-      <h1>制造企业文案助手</h1>
-      <p>面向山东中小制造企业的 AI 营销文案生成工具：粘贴产品参数，一键生成 1688 商品文案、短视频口播、朋友圈短文案、AI 绘图提示词、博客文章与商务邮件六段营销内容；内置机床、五金、建材、橡塑等行业文案模板库，支持产品资料按编号查询与广告法绝对化用语合规检测。</p>
+      <h1>墨匠文案</h1>
+      <p>墨匠文案是面向山东中小制造企业的 AI 营销文案生成工具：粘贴产品参数，一键生成 1688 商品文案、短视频口播、朋友圈短文案、AI 绘图提示词、博客文章与商务邮件六段营销内容；内置机床、五金、建材、橡塑等行业文案模板库，支持产品资料按编号查询与广告法绝对化用语合规检测。</p>
     </div>
     <div id="proNotice" class="pro-notice" style="display:none">
-      <span>🤖 升级款·AI 模式：将调用你配置的大模型生成更丰富的文案。</span>
+      <span>🤖 基础版·AI 模式：将调用你配置的大模型生成更丰富的文案。</span>
       <span id="proKeyState" class="pro-key-state"></span>
     </div>
     <div class="gen-layout">
@@ -163,8 +163,8 @@
   <!-- ===== 使用说明 ===== -->
   <section class="panel" id="tab-help">
     <div class="help">
-      <h2>制造企业文案助手 · 网页版</h2>
-      <p>本网页版提供<b>基础款</b>能力：用内置的<b>行业模板</b>把产品参数套成六段营销文案，<b>无需联网、无需密钥、打开即用</b>。</p>
+      <h2>墨匠文案 · 网页版</h2>
+      <p>本网页版提供<b>离线版</b>能力：用内置的<b>行业模板</b>把产品参数套成六段营销文案，<b>无需联网、无需密钥、打开即用</b>。</p>
       <h3>快速上手</h3>
       <ol>
         <li>在「✨ 生成文案」里粘贴产品参数（带上「产品名称 / 行业品类 / 材质 / 尺寸规格 / 交期 / 认证」效果最佳），点「一键生成六段文案」。</li>
@@ -174,16 +174,16 @@
       </ol>
       <h3>关于数据保存</h3>
       <p>网页版的数据（产品库、模板修改、AI 密钥）保存在<b>当前浏览器本地</b>。清理浏览器缓存 / 换浏览器会丢失，重要数据请用「📤 导出」备份。</p>
-      <h3>两档模式：基础款 / 升级款</h3>
+      <h3>两档模式：基础版·AI / 离线版</h3>
       <ul>
-        <li><b>基础款</b>（默认，无需联网）：用内置行业模板套用生成，打开即用、无需密钥。</li>
-        <li><b>升级款·AI</b>：点右上角「⚙ 设置」填入你自己的大模型 API 密钥（如 DeepSeek），保存后切到「升级款·AI」，即可让模型生成更丰富、更贴合的文案。<b>密钥只存你本机浏览器，不会上传</b>。若浏览器直连接口报跨域/网络错误，属正常网络限制，可在「设置」里改用支持跨域的代理接口地址。</li>
+        <li><b>离线版</b>（无需联网）：用内置行业模板套用生成，打开即用、无需密钥。</li>
+        <li><b>基础版·AI</b>（默认）：点右上角「⚙ 设置」填入你自己的大模型 API 密钥（如 DeepSeek），保存后即可让模型生成更丰富、更贴合的文案。<b>密钥只存你本机浏览器，不会上传</b>。若浏览器直连接口报跨域/网络错误，属正常网络限制，可在「设置」里改用支持跨域的代理接口地址。</li>
       </ul>
     </div>
   </section>
 
   <footer class="footer">
-    <span>制造企业文案助手 · 网页版 v1.1</span>
+    <span>墨匠文案 · 网页版 v1.1</span>
   </footer>
   <div class="page-disclaimer">
     <p>本页面为2026山东省首届大学生AI大模型创新传播大赛评审演示版本，仅用于赛事原创性核验，作品知识产权归参赛团队所有，禁止商用、复刻参赛。</p>
@@ -198,15 +198,21 @@
 <!-- AI 设置弹层 -->
 <div class="modal-overlay" id="settingsModal" style="display:none">
   <div class="modal-box">
-    <h3>⚙ AI 设置（升级款）</h3>
-    <p class="modal-tip">密钥只保存在<b>你自己的浏览器</b>，不会上传到任何服务器。<br>默认用 DeepSeek 官方接口，也可改成任意 OpenAI 兼容接口。</p>
+    <h3>⚙ AI 设置（基础版·AI）</h3>
+    <p class="modal-tip">密钥只保存在<b>你自己的浏览器</b>，不会上传到任何服务器。<br>默认用 DeepSeek 官方接口，也可改成任意 OpenAI 兼容接口（如 https://ai.hebox.net）。</p>
     <label class="modal-lbl">接口地址（API URL）</label>
-    <input id="setApiUrl" class="modal-input" type="text" placeholder="https://api.deepseek.com/v1/chat/completions">
+    <input id="setApiUrl" class="modal-input" type="text" placeholder="https://ai.hebox.net/v1 或 https://api.deepseek.com/v1/chat/completions">
+    <p class="modal-tip" style="margin:-4px 0 8px">只填域名也能用，会自动补成 <code>/v1/chat/completions</code>。</p>
     <label class="modal-lbl">API 密钥（Key）</label>
     <input id="setApiKey" class="modal-input" type="password" placeholder="sk-...">
     <label class="modal-lbl">模型名称（Model）</label>
     <input id="setModel" class="modal-input" type="text" placeholder="deepseek-chat">
+    <div id="modelPicker" style="display:none">
+      <p class="modal-tip" style="margin:6px 0 4px">👆 点一个模型名即可填入上面输入框：</p>
+      <div id="modelList" class="model-list"></div>
+    </div>
     <div class="modal-bar">
+      <button id="setModelsBtn" class="btn btn-ghost">📋 查看可用模型</button>
       <button id="setTestBtn" class="btn btn-ghost">测试连接</button>
       <span class="grow"></span>
       <button id="setCancelBtn" class="btn btn-ghost">取消</button>
